@@ -1,11 +1,34 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {SafeAreaView, StyleSheet, Text, View} from 'react-native';
+import HealthKit from '@kingstinct/react-native-healthkit';
 
 function HomeScreen() {
-  const steps = 6842;
+  const steps = 6845;
   const goal = 10000;
   const progress = Math.round((steps / goal) * 100);
+  const currentStreak = 4;
+  const recentActivity = [
+    {day: 'Monday', steps: 10421},
+    {day: 'Sunday', steps: 11203},
+    {day: 'Saturday', steps: 8932},
+  ];
 
+  /* useEffect(() => {
+    const requestHealthPermissions = async () => {
+      try {
+        await HealthKit.requestAuthorization({
+            toRead: ['HKQuantityTypeIdentifierStepCount'],
+        });
+  
+        console.log('HealthKit permission requested');
+      } catch (error) {
+        console.error('HealthKit permission error:', error);
+      }
+    };
+  
+    requestHealthPermissions();
+  }, []);
+*/
   return (
     <SafeAreaView style={styles.container}>
       <View>
@@ -21,8 +44,21 @@ function HomeScreen() {
       {width: `${Math.min(progress, 100)}%`},
     ]}
   />
-</View>
+  </View>
+  
+  <Text style={styles.streak}>
+  🔥 {currentStreak} Day Streak
+</Text>
+
       </View>
+<Text style = {styles.sectionTitle}>Recent Activities</Text>
+
+{recentActivity.map(activity => (
+  <Text key={activity.day}>
+    {activity.day}: {activity.steps.toLocaleString()} steps{' '}
+    {activity.steps >= goal ? '✓' : '✗'}
+  </Text>
+))}
     </SafeAreaView>
   );
 }
@@ -62,6 +98,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
     borderRadius: 6,
   },
+
+  streak: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 10,
+  },
+
+  sectionTitle:{
+    fontSize: 20,
+    fontWeight:'bold',
+    marginTop: 32,
+    marginBottom: 12,
+  }
 });
 
 export default HomeScreen;
