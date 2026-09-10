@@ -35,8 +35,6 @@
 	</dict>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Step Accountability uses your Health data to read your daily step count and track progress toward your activity goal.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

@@ -1,9 +1,8 @@
 import React, {useEffect} from 'react';
 import {SafeAreaView, StyleSheet, Text, View} from 'react-native';
-import HealthKit from '@kingstinct/react-native-healthkit';
-
+import {isHealthDataAvailable,requestAuthorization,queryQuantitySamples,} from '@kingstinct/react-native-healthkit';
 function HomeScreen() {
-  const steps = 6845;
+  const [steps, setSteps] = React.useState(0);
   const goal = 10000;
   const progress = Math.round((steps / goal) * 100);
   const currentStreak = 4;
@@ -13,6 +12,52 @@ function HomeScreen() {
     {day: 'Saturday', steps: 8932},
   ];
 
+  useEffect(() => {
+    const setupHealthKit = async () => {
+      try {
+        const available = await isHealthDataAvailable();
+        console.log('HealthKit available:', available);
+  
+        if (!available) {
+          return;
+        }
+  
+        await requestAuthorization({
+          toRead: ['HKQuantityTypeIdentifierStepCount'],
+        });
+  
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+  
+        const samples = await queryQuantitySamples(
+          'HKQuantityTypeIdentifierStepCount',
+          {
+            filter: {
+              date: {
+                startDate: startOfDay,
+                endDate: new Date(),
+              },
+            },
+            unit: 'count',
+            limit: 1000,
+          },
+        );
+  
+        const totalSteps = samples.reduce(
+          (sum, sample) => sum + sample.quantity,
+          0,
+        );
+  
+        setSteps(Math.round(totalSteps));
+  
+        console.log('Today steps:', totalSteps);
+      } catch (error) {
+        console.error('HealthKit error:', error);
+      }
+    };
+  
+    setupHealthKit();
+  }, []);
   /* useEffect(() => {
     const requestHealthPermissions = async () => {
       try {
@@ -67,6 +112,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+    backgroundColor: '#ffffff',
   },
 
   title: {
