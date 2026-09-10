@@ -1,5 +1,11 @@
 import React, {useEffect} from 'react';
-import {SafeAreaView, StyleSheet, Text, View} from 'react-native';
+import {
+  AppState,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import {isHealthDataAvailable,requestAuthorization,queryQuantitySamples,} from '@kingstinct/react-native-healthkit';
 function HomeScreen() {
   const [steps, setSteps] = React.useState(0);
@@ -49,7 +55,6 @@ function HomeScreen() {
         );
   
         setSteps(Math.round(totalSteps));
-  
         console.log('Today steps:', totalSteps);
       } catch (error) {
         console.error('HealthKit error:', error);
@@ -57,6 +62,16 @@ function HomeScreen() {
     };
   
     setupHealthKit();
+  
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        setupHealthKit();
+      }
+    });
+  
+    return () => {
+      subscription.remove();
+    };
   }, []);
   /* useEffect(() => {
     const requestHealthPermissions = async () => {
