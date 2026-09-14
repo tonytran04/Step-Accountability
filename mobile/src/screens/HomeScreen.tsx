@@ -9,16 +9,48 @@ import {
 import {isHealthDataAvailable,requestAuthorization,queryQuantitySamples,} from '@kingstinct/react-native-healthkit';
 function HomeScreen() {
   const [steps, setSteps] = React.useState(0);
+  
   const goal = 10000;
+  
+  const [recentActivity, setRecentActivity] = React.useState<
+  {date: string; steps: number; goal: number}[]
+>([]);
+
   const progress = Math.round((steps / goal) * 100);
-  const currentStreak = 4;
-  const recentActivity = [
-    {day: 'Monday', steps: 10421},
-    {day: 'Sunday', steps: 11203},
-    {day: 'Saturday', steps: 8932},
-  ];
+  const calculateStreak = () => {
+    let streak = 0;
+  
+    const today = new Date().toISOString().split('T')[0];
+  
+    for (const activity of recentActivity) {
+      // Today is still in progress, so don't let it break the streak
+      if (activity.date === today && activity.steps < activity.goal) {
+        continue;
+      }
+  
+      if (activity.steps >= activity.goal) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+  
+    return streak;
+  };
+  
+  const currentStreak = calculateStreak();
 
   useEffect(() => {
+    const loadRecentActivity = async () => {
+      try {
+        const response = await fetch('http://192.168.4.66:3000/api/steps');
+        const data = await response.json();
+    
+        setRecentActivity(data);
+      } catch (error) {
+        console.error('Recent activity error:', error);
+      }
+    };
     const setupHealthKit = async () => {
       try {
         const available = await isHealthDataAvailable();
@@ -74,10 +106,12 @@ await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
     };
   
     setupHealthKit();
+    loadRecentActivity();
   
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (nextAppState === 'active') {
         setupHealthKit();
+        loadRecentActivity();
       }
     });
   
@@ -126,9 +160,11 @@ await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
 <Text style = {styles.sectionTitle}>Recent Activities</Text>
 
 {recentActivity.map(activity => (
-  <Text key={activity.day}>
-    {activity.day}: {activity.steps.toLocaleString()} steps{' '}
-    {activity.steps >= goal ? '✓' : '✗'}
+  <Text key={activity.date}>
+    {new Date(`${activity.date}T12:00:00`).toLocaleDateString('en-US', {
+      weekday: 'long',
+    })}: {activity.steps.toLocaleString()} steps
+    {activity.steps >= activity.goal ? ' ✓' : ' ✗'}
   </Text>
 ))}
     </SafeAreaView>
