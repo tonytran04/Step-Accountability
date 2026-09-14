@@ -55,6 +55,18 @@ function HomeScreen() {
         );
   
         setSteps(Math.round(totalSteps));
+        const today = new Date().toISOString().split('T')[0];
+
+await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    steps: Math.round(totalSteps),
+    goal,
+  }),
+});
         console.log('Today steps:', totalSteps);
       } catch (error) {
         console.error('HealthKit error:', error);
