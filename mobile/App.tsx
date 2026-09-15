@@ -1,28 +1,37 @@
 import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 
 import HomeScreen from './src/screens/HomeScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import {GoalProvider} from './src/context/GoalContext';
 
-const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
 function App() {
   return (
+  <GoalProvider>
     <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen
+      <Tab.Navigator>
+        <Tab.Screen
           name="Home"
           component={HomeScreen}
           options={{headerShown: false}}
         />
 
-        <Stack.Screen
+        <Tab.Screen
           name="History"
           component={HistoryScreen}
         />
-      </Stack.Navigator>
+        <Tab.Screen
+          name="Settings"
+          component={SettingsScreen}
+/>
+      </Tab.Navigator>
     </NavigationContainer>
+  </GoalProvider>
+    
   );
 }
 

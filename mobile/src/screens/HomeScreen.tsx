@@ -1,6 +1,8 @@
 import React, {useEffect} from 'react';
 import {
   AppState,
+  Pressable,
+  ScrollView,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -8,6 +10,7 @@ import {
 } from 'react-native';
 import {isHealthDataAvailable,requestAuthorization,queryQuantitySamples,} from '@kingstinct/react-native-healthkit';
 import {calculateStreak} from '../utils/streak';
+import {useGoal} from '../context/GoalContext';
 
 const getLocalDateString = (date = new Date()) => {
   const year = date.getFullYear();
@@ -20,7 +23,7 @@ const getLocalDateString = (date = new Date()) => {
 function HomeScreen() {
   const [steps, setSteps] = React.useState(0);
   
-  const goal = 10000;
+  const {goal} = useGoal();
   
   const [recentActivity, setRecentActivity] = React.useState<
   {date: string; steps: number; goal: number}[]
@@ -41,6 +44,62 @@ function HomeScreen() {
         console.error('Recent activity error:', error);
       }
     };
+    const getStepsForDate = async (date: Date) => {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+    
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+    
+      const samples = await queryQuantitySamples(
+        'HKQuantityTypeIdentifierStepCount',
+        {
+          filter: {
+            date: {
+              startDate: startOfDay,
+              endDate: endOfDay,
+            },
+          },
+          unit: 'count',
+          limit: 1000,
+        },
+      );
+    
+      const totalSteps = samples.reduce(
+        (sum, sample) => sum + sample.quantity,
+        0,
+      );
+    
+      return Math.round(totalSteps);
+    };
+
+    const syncLast7Days = async () => {
+      for (let index = 0; index < 7; index++) {
+        const date = new Date();
+        date.setHours(12, 0, 0, 0);
+        date.setDate(date.getDate() - index);
+    
+        const stepsForDay = await getStepsForDate(date);
+        const dateString = getLocalDateString(date);
+    
+        await fetch(
+          `http://192.168.4.66:3000/api/steps/${dateString}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              steps: stepsForDay,
+              goal,
+            }),
+          },
+        );
+    
+        console.log(`Synced ${dateString}: ${stepsForDay} steps`);
+      }
+    };
+
     const setupHealthKit = async () => {
       try {
         const available = await isHealthDataAvailable();
@@ -53,6 +112,8 @@ function HomeScreen() {
         await requestAuthorization({
           toRead: ['HKQuantityTypeIdentifierStepCount'],
         });
+        
+        await syncLast7Days();
   
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
@@ -125,10 +186,14 @@ await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
     requestHealthPermissions();
   }, []);
 */
-  return (
-    <SafeAreaView style={styles.container}>
+return (
+  <SafeAreaView style={styles.container}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
       <View>
-  <Text style={styles.title}>Step Accountability</Text>
+        <Text style={styles.title}>Step Accountability</Text>
 
   <View style={styles.stepCard}>
     <Text style={styles.label}>Today's Steps</Text>
@@ -161,7 +226,9 @@ await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
 </View>
 
 </View>
-<Text style = {styles.sectionTitle}>Recent Activities</Text>
+
+<Text style={styles.sectionTitle}>Recent Activities</Text>
+
 
 {recentActivity.map(activity => {
   const completed = activity.steps >= activity.goal;
@@ -186,11 +253,14 @@ await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
     </View>
   );
 })}
-    </SafeAreaView>
-  );
+
+</ScrollView>
+</SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({
+ 
   stepCard: {
     backgroundColor: '#ff1111',
     padding: 20,
@@ -211,8 +281,12 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 24,
     backgroundColor: '#ffffff',
+  },
+  
+  scrollContent: {
+    padding: 24,
+    paddingBottom: 40,
   },
 
   title: {
