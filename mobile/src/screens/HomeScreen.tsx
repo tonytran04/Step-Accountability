@@ -9,6 +9,14 @@ import {
 import {isHealthDataAvailable,requestAuthorization,queryQuantitySamples,} from '@kingstinct/react-native-healthkit';
 import {calculateStreak} from '../utils/streak';
 
+const getLocalDateString = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
 function HomeScreen() {
   const [steps, setSteps] = React.useState(0);
   
@@ -18,19 +26,7 @@ function HomeScreen() {
   {date: string; steps: number; goal: number}[]
 >([]);
 
-  const progress = Math.round((steps / goal) * 100);
-
-  const getLocalDate = () => {
-    const date = new Date();
-  
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-  
-    return `${year}-${month}-${day}`;
-  };
-
-  
+  const progress = Math.round((steps / goal) * 100); 
   
   const currentStreak = calculateStreak(recentActivity);
 
@@ -81,7 +77,7 @@ function HomeScreen() {
         );
   
         setSteps(Math.round(totalSteps));
-        const today = getLocalDate();
+        const today = getLocalDateString();
 
 await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
   method: 'PUT',
