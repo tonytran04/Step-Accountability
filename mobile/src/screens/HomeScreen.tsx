@@ -7,6 +7,8 @@ import {
   View,
 } from 'react-native';
 import {isHealthDataAvailable,requestAuthorization,queryQuantitySamples,} from '@kingstinct/react-native-healthkit';
+import {calculateStreak} from '../utils/streak';
+
 function HomeScreen() {
   const [steps, setSteps] = React.useState(0);
   
@@ -28,28 +30,9 @@ function HomeScreen() {
     return `${year}-${month}-${day}`;
   };
 
-  const calculateStreak = () => {
-    let streak = 0;
   
-    const today = getLocalDate();
   
-    for (const activity of recentActivity) {
-      // Today is still in progress, so don't let it break the streak
-      if (activity.date === today && activity.steps < activity.goal) {
-        continue;
-      }
-  
-      if (activity.steps >= activity.goal) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-  
-    return streak;
-  };
-  
-  const currentStreak = calculateStreak();
+  const currentStreak = calculateStreak(recentActivity);
 
   useEffect(() => {
     const loadRecentActivity = async () => {
@@ -98,7 +81,7 @@ function HomeScreen() {
         );
   
         setSteps(Math.round(totalSteps));
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDate();
 
 await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
   method: 'PUT',
