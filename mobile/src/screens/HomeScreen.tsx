@@ -17,10 +17,21 @@ function HomeScreen() {
 >([]);
 
   const progress = Math.round((steps / goal) * 100);
+
+  const getLocalDate = () => {
+    const date = new Date();
+  
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+  
+    return `${year}-${month}-${day}`;
+  };
+
   const calculateStreak = () => {
     let streak = 0;
   
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDate();
   
     for (const activity of recentActivity) {
       // Today is still in progress, so don't let it break the streak
@@ -138,40 +149,87 @@ await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
   return (
     <SafeAreaView style={styles.container}>
       <View>
-        <Text style={styles.title}>Step Accountability</Text>
-        <Text style={styles.label}>Today's Steps</Text>
-        <Text style={styles.steps}>{steps.toLocaleString()} / {goal.toLocaleString()}
-</Text>
-<Text>{progress}% Complete</Text>
-<View style={styles.progressBar}>
-  <View
-    style={[
-      styles.progressFill,
-      {width: `${Math.min(progress, 100)}%`},
-    ]}
-  />
-  </View>
-  
-  <Text style={styles.streak}>
-  🔥 {currentStreak} Day Streak
-</Text>
+  <Text style={styles.title}>Step Accountability</Text>
 
-      </View>
+  <View style={styles.stepCard}>
+    <Text style={styles.label}>Today's Steps</Text>
+
+    <Text style={styles.steps}>
+      {steps.toLocaleString()} / {goal.toLocaleString()}
+    </Text>
+
+    <Text style={styles.progressText}>
+      {progress}% Complete
+    </Text>
+
+    <View style={styles.progressBar}>
+      <View
+        style={[
+          styles.progressFill,
+          {width: `${Math.min(progress, 100)}%`},
+        ]}
+      />
+    </View>
+  </View>
+
+  <View style={styles.streakCard}>
+  <Text style={styles.streakEmoji}>🔥</Text>
+
+  <View>
+    <Text style={styles.streakNumber}>{currentStreak} Days</Text>
+    <Text style={styles.streakLabel}>Current Streak</Text>
+  </View>
+</View>
+
+</View>
 <Text style = {styles.sectionTitle}>Recent Activities</Text>
 
-{recentActivity.map(activity => (
-  <Text key={activity.date}>
-    {new Date(`${activity.date}T12:00:00`).toLocaleDateString('en-US', {
-      weekday: 'long',
-    })}: {activity.steps.toLocaleString()} steps
-    {activity.steps >= activity.goal ? ' ✓' : ' ✗'}
-  </Text>
-))}
+{recentActivity.map(activity => {
+  const completed = activity.steps >= activity.goal;
+
+  return (
+    <View key={activity.date} style={styles.activityRow}>
+      <View>
+        <Text style={styles.activityDay}>
+          {new Date(`${activity.date}T12:00:00`).toLocaleDateString('en-US', {
+            weekday: 'long',
+          })}
+        </Text>
+
+        <Text style={styles.activitySteps}>
+          {activity.steps.toLocaleString()} steps
+        </Text>
+      </View>
+
+      <Text style={styles.activityStatus}>
+        {completed ? '✓' : '○'}
+      </Text>
+    </View>
+  );
+})}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  stepCard: {
+    backgroundColor: '#ff1111',
+    padding: 20,
+    borderRadius: 18,
+    marginTop: 24,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  
+  progressText: {
+    fontSize: 14,
+    marginTop: 4,
+    marginBottom: 14,
+  },
   container: {
     flex: 1,
     padding: 24,
@@ -185,7 +243,7 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 18,
-    marginTop: 40,
+    marginTop: 0,
   },
 
   steps: {
@@ -207,11 +265,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
     borderRadius: 6,
   },
-
-  streak: {
-    fontSize: 20,
+/*create streak card*/
+  streakCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF7ED',
+    padding: 18,
+    borderRadius: 18,
+    marginBottom: 8,
+  },
+  
+  streakEmoji: {
+    fontSize: 32,
+    marginRight: 14,
+  },
+  
+  streakNumber: {
+    fontSize: 22,
     fontWeight: 'bold',
-    marginTop: 10,
+  },
+  
+  streakLabel: {
+    fontSize: 14,
+    marginTop: 2,
   },
 
   sectionTitle:{
@@ -219,7 +295,36 @@ const styles = StyleSheet.create({
     fontWeight:'bold',
     marginTop: 32,
     marginBottom: 12,
-  }
+  },
+
+  activityRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    marginBottom: 8,
+  },
+  
+  activityDay: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  
+  activitySteps: {
+    fontSize: 14,
+    marginTop: 3,
+    color: '#6B7280',
+  },
+  
+  activityStatus: {
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  
+
 });
 
 export default HomeScreen;
