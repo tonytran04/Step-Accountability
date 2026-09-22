@@ -1,4 +1,9 @@
 import React, {useEffect} from 'react';
+import {API_BASE_URL} from '../config/api';
+import {
+  requestNotificationPermission,
+  scheduleDailyReminder,
+} from '../services/notifications';
 import {
   AppState,
   Pressable,
@@ -28,7 +33,8 @@ function HomeScreen() {
   const [recentActivity, setRecentActivity] = React.useState<
   {date: string; steps: number; goal: number}[]
 >([]);
-
+const [activityLoading, setActivityLoading] = React.useState(true);
+const [activityError, setActivityError] = React.useState(false);
   const progress = Math.round((steps / goal) * 100); 
   
   const currentStreak = calculateStreak(recentActivity);
@@ -36,12 +42,23 @@ function HomeScreen() {
   useEffect(() => {
     const loadRecentActivity = async () => {
       try {
-        const response = await fetch('http://192.168.4.66:3000/api/steps');
+        setActivityLoading(true);
+        setActivityError(false);
+    
+        const response = await fetch(`${API_BASE_URL}/api/steps`);
+    
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+    
         const data = await response.json();
     
         setRecentActivity(data);
       } catch (error) {
         console.error('Recent activity error:', error);
+        setActivityError(true);
+      } finally {
+        setActivityLoading(false);
       }
     };
     const getStepsForDate = async (date: Date) => {
@@ -83,7 +100,7 @@ function HomeScreen() {
         const dateString = getLocalDateString(date);
     
         await fetch(
-          `http://192.168.4.66:3000/api/steps/${dateString}`,
+          `${API_BASE_URL}/api/steps/${dateString}`,
           {
             method: 'PUT',
             headers: {
@@ -140,7 +157,7 @@ function HomeScreen() {
         setSteps(Math.round(totalSteps));
         const today = getLocalDateString();
 
-await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
+        await fetch(`${API_BASE_URL}/api/steps/${today}`, {
   method: 'PUT',
   headers: {
     'Content-Type': 'application/json',
@@ -155,7 +172,12 @@ await fetch(`http://192.168.4.66:3000/api/steps/${today}`, {
         console.error('HealthKit error:', error);
       }
     };
-  
+    const setupNotifications = async () => {
+      await requestNotificationPermission();
+      await scheduleDailyReminder();
+    };
+    
+    setupNotifications();
     setupHealthKit();
     loadRecentActivity();
   
@@ -202,9 +224,12 @@ return (
       {steps.toLocaleString()} / {goal.toLocaleString()}
     </Text>
 
-    <Text style={styles.progressText}>
-      {progress}% Complete
-    </Text>
+    <View style={styles.progressHeader}>
+  <Text style={styles.progressLabel}>Daily Progress</Text>
+  <Text style={styles.progressPercent}>
+    {progress}% Complete
+  </Text>
+</View>
 
     <View style={styles.progressBar}>
       <View
@@ -220,7 +245,9 @@ return (
   <Text style={styles.streakEmoji}>🔥</Text>
 
   <View>
-    <Text style={styles.streakNumber}>{currentStreak} Days</Text>
+  <Text style={styles.streakNumber}>
+  {currentStreak} {currentStreak === 1 ? 'Day' : 'Days'}
+</Text>
     <Text style={styles.streakLabel}>Current Streak</Text>
   </View>
 </View>
@@ -230,29 +257,44 @@ return (
 <Text style={styles.sectionTitle}>Recent Activities</Text>
 
 
-{recentActivity.map(activity => {
-  const completed = activity.steps >= activity.goal;
+{activityLoading ? (
+  <Text style={styles.activityMessage}>Loading recent activity...</Text>
+) : activityError ? (
+  <Text style={styles.activityMessage}>
+    Unable to load recent activity.
+  </Text>
+) : recentActivity.length === 0 ? (
+  <Text style={styles.activityMessage}>No activity yet.</Text>
+) : (
+  recentActivity.map(activity => {
+    const completed = activity.steps >= activity.goal;
 
-  return (
-    <View key={activity.date} style={styles.activityRow}>
-      <View>
-        <Text style={styles.activityDay}>
-          {new Date(`${activity.date}T12:00:00`).toLocaleDateString('en-US', {
-            weekday: 'long',
-          })}
-        </Text>
+    return (
+      <View key={activity.date} style={styles.activityRow}>
+        <View>
+          <Text style={styles.activityDay}>
+            {new Date(`${activity.date}T12:00:00`).toLocaleDateString(
+              'en-US',
+              {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+              },
+            )}
+          </Text>
 
-        <Text style={styles.activitySteps}>
-          {activity.steps.toLocaleString()} steps
+          <Text style={styles.activitySteps}>
+            {activity.steps.toLocaleString()} steps
+          </Text>
+        </View>
+
+        <Text style={styles.activityStatus}>
+          {completed ? '✓' : '○'}
         </Text>
       </View>
-
-      <Text style={styles.activityStatus}>
-        {completed ? '✓' : '○'}
-      </Text>
-    </View>
-  );
-})}
+    );
+  })
+)}
 
 </ScrollView>
 </SafeAreaView>
@@ -262,7 +304,7 @@ return (
 const styles = StyleSheet.create({
  
   stepCard: {
-    backgroundColor: '#ff1111',
+    backgroundColor: '#F3F4F6',
     padding: 20,
     borderRadius: 18,
     marginTop: 24,
@@ -309,7 +351,7 @@ const styles = StyleSheet.create({
     height: 12,
     backgroundColor: '#E5E7EB',
     borderRadius: 6,
-    marginTop: 16,
+    marginTop: 5,
     overflow: 'hidden',
   },
   
@@ -376,8 +418,28 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
   },
+  activityMessage: {
+    fontSize: 14,
+    color: '#6B7280',
+    paddingVertical: 12,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14,
+    marginBottom: 8,
+  },
   
-
+  progressLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  
+  progressPercent: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
 
 export default HomeScreen;

@@ -1,4 +1,6 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useState} from 'react';
+import {useFocusEffect} from '@react-navigation/native';
+import {API_BASE_URL} from '../config/api';
 import {
   SafeAreaView,
   StyleSheet,
@@ -12,22 +14,22 @@ function HistoryScreen() {
     {date: string; steps: number; goal: number}[]
   >([]);
 
-  useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        const response = await fetch(
-          'http://192.168.4.66:3000/api/steps',
-        );
-
-        const data = await response.json();
-        setActivities(data);
-      } catch (error) {
-        console.error('History error:', error);
-      }
-    };
-
-    loadHistory();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const loadHistory = async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/steps`);
+          const data = await response.json();
+  
+          setActivities(data);
+        } catch (error) {
+          console.error('History error:', error);
+        }
+      };
+  
+      loadHistory();
+    }, []),
+  );
 
   const getLocalDateString = (date: Date) => {
     const year = date.getFullYear();
@@ -55,9 +57,9 @@ function HistoryScreen() {
     };
   });
 
-const goalsCompleted = last7Days.filter(
-  activity => activity.steps >= activity.goal,
-).length;
+  const goalsCompleted = last7Days.filter(
+    activity => activity.steps >= activity.goal,
+  ).length;
 
 const averageSteps =
   last7Days.length > 0
@@ -68,7 +70,7 @@ const averageSteps =
         ) / last7Days.length,
       )
     : 0;
-    const chartData = [...last7Days];
+    const chartData = [...last7Days].reverse();
 
     const maxSteps = Math.max(
       ...chartData.map(activity => activity.steps),
@@ -138,7 +140,7 @@ const averageSteps =
 </View>
 
 {activities.map(activity => {
-  const completed = activity.steps >= activity.goal;
+ const completed = activity.steps >= activity.goal;
 
   return (
     <View key={activity.date} style={styles.activityRow}>
@@ -155,9 +157,9 @@ const averageSteps =
         </Text>
 
         <Text style={styles.activitySteps}>
-          {activity.steps.toLocaleString()} /{' '}
-          {activity.goal.toLocaleString()} steps
-        </Text>
+  {activity.steps.toLocaleString()} /{' '}
+  {activity.goal.toLocaleString()} steps
+</Text>
       </View>
 
       <Text style={styles.activityStatus}>

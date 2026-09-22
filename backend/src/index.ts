@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
@@ -20,16 +20,34 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.put('/api/steps/:date', async (req, res) => {
-    const { date } = req.params;
-    const { steps, goal } = req.body;
+    const {date} = req.params;
+    const {steps, goal} = req.body;
   
-    const { data, error } = await supabase
+    // Check whether this date already exists.
+    const {data: existingEntry, error: lookupError} = await supabase
+      .from('daily_steps')
+      .select('goal')
+      .eq('date', date)
+      .maybeSingle();
+  
+    if (lookupError) {
+      console.error('Supabase lookup error:', lookupError);
+  
+      return res.status(500).json({
+        error: 'Failed to check existing step data',
+      });
+    }
+  
+    // Preserve the historical goal if this day already exists.
+    const goalToSave = existingEntry?.goal ?? goal;
+  
+    const {data, error} = await supabase
       .from('daily_steps')
       .upsert(
         {
           date,
           steps,
-          goal,
+          goal: goalToSave,
           synced_at: new Date().toISOString(),
         },
         {

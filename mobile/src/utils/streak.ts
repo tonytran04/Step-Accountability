@@ -9,13 +9,28 @@ export type Activity = {
     today: Date = new Date(),
   ) => {
     let streak = 0;
+
+    const sortedActivity = [...recentActivity].sort(
+        (a, b) => b.date.localeCompare(a.date),
+      );
   
     const currentDate = new Date(today);
     currentDate.setHours(0, 0, 0, 0);
   
     let expectedDate = new Date(currentDate);
-  
-    for (const activity of recentActivity) {
+
+const hasToday = sortedActivity.some(activity => {
+  const activityDate = new Date(`${activity.date}T12:00:00`);
+  activityDate.setHours(0, 0, 0, 0);
+
+  return activityDate.getTime() === currentDate.getTime();
+});
+
+if (!hasToday) {
+  expectedDate.setDate(expectedDate.getDate() - 1);
+}
+
+for (const activity of sortedActivity) {
       const activityDate = new Date(`${activity.date}T12:00:00`);
       activityDate.setHours(0, 0, 0, 0);
   
