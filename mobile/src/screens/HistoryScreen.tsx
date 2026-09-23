@@ -32,8 +32,8 @@ function HistoryScreen() {
           
             const data = await response.json();
             setActivities(data);
-          } catch (error) {
-            console.error('History error:', error);
+          } catch (fetchError) {
+            console.error('History error:', fetchError);
             setError('Unable to refresh activity.');
           } finally {
             setIsLoading(false);

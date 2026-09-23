@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   SafeAreaView,
   Alert,
@@ -14,6 +14,7 @@ import {useGoal} from '../context/GoalContext';
 function SettingsScreen() {
     const {goal, updateGoal} = useGoal();
     const [goalInput, setGoalInput] = useState(goal.toString());
+    useEffect(() => setGoalInput(goal.toString()), [goal]);
   return (
     <SafeAreaView style={styles.container}>
       <View>
@@ -42,13 +43,15 @@ function SettingsScreen() {
   onPress={() => {
     const newGoal = Number(goalInput);
 
-    if (newGoal > 0) {
+    if (Number.isSafeInteger(newGoal) && newGoal > 0) {
         updateGoal(newGoal);
       Keyboard.dismiss();
       Alert.alert(
         'Goal Saved',
         `Your daily goal is now ${newGoal.toLocaleString()} steps.`,
       );
+    } else {
+      Alert.alert('Invalid Goal', 'Enter a positive whole number of steps.');
     }
   }}>
   <Text style={styles.saveButtonText}>Save Goal</Text>

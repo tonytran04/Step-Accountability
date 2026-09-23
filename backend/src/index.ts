@@ -13,7 +13,7 @@ if (!supabaseUrl || !supabaseSecretKey) {
 
 const supabase = createClient(supabaseUrl, supabaseSecretKey);
 
-app.use(express.json());
+app.use(express.json({limit: '16kb'}));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
@@ -21,7 +21,14 @@ app.get('/api/health', (_req, res) => {
 
 app.put('/api/steps/:date', async (req, res) => {
     const {date} = req.params;
-    const {steps, goal} = req.body;
+    const {steps, goal, updateGoal = false} = req.body ?? {};
+
+    const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(`${date}T00:00:00Z`) : null;
+    if (!parsedDate || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date ||
+        !Number.isSafeInteger(steps) || steps < 0 ||
+        !Number.isSafeInteger(goal) || goal <= 0 || typeof updateGoal !== 'boolean') {
+      return res.status(400).json({error: 'Provide a valid date, nonnegative steps, and a positive goal'});
+    }
   
     // Check whether this date already exists.
     const {data: existingEntry, error: lookupError} = await supabase
@@ -38,8 +45,8 @@ app.put('/api/steps/:date', async (req, res) => {
       });
     }
   
-    // Preserve the historical goal if this day already exists.
-    const goalToSave = existingEntry?.goal ?? goal;
+    // Keep older days' goals as recorded; the client may update today's goal.
+    const goalToSave = updateGoal ? goal : existingEntry?.goal ?? goal;
   
     const {data, error} = await supabase
       .from('daily_steps')

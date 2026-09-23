@@ -6,7 +6,6 @@ import {
 } from '../services/notifications';
 import {
   AppState,
-  Pressable,
   ScrollView,
   SafeAreaView,
   StyleSheet,
@@ -28,18 +27,20 @@ const getLocalDateString = (date = new Date()) => {
 function HomeScreen() {
   const [steps, setSteps] = React.useState(0);
   
-  const {goal} = useGoal();
+  const {goal, goalLoaded} = useGoal();
   
   const [recentActivity, setRecentActivity] = React.useState<
   {date: string; steps: number; goal: number}[]
 >([]);
 const [activityLoading, setActivityLoading] = React.useState(true);
 const [activityError, setActivityError] = React.useState(false);
+const [syncError, setSyncError] = React.useState(false);
   const progress = Math.round((steps / goal) * 100); 
   
   const currentStreak = calculateStreak(recentActivity);
 
   useEffect(() => {
+    if (!goalLoaded) { return; }
     const loadRecentActivity = async () => {
       try {
         setActivityLoading(true);
@@ -99,7 +100,7 @@ const [activityError, setActivityError] = React.useState(false);
         const stepsForDay = await getStepsForDate(date);
         const dateString = getLocalDateString(date);
     
-        await fetch(
+        const response = await fetch(
           `${API_BASE_URL}/api/steps/${dateString}`,
           {
             method: 'PUT',
@@ -109,9 +110,13 @@ const [activityError, setActivityError] = React.useState(false);
             body: JSON.stringify({
               steps: stepsForDay,
               goal,
+              updateGoal: index === 0,
             }),
           },
         );
+        if (!response.ok) {
+          throw new Error(`Step sync failed for ${dateString}: ${response.status}`);
+        }
     
         console.log(`Synced ${dateString}: ${stepsForDay} steps`);
       }
@@ -119,6 +124,7 @@ const [activityError, setActivityError] = React.useState(false);
 
     const setupHealthKit = async () => {
       try {
+        setSyncError(false);
         const available = await isHealthDataAvailable();
         console.log('HealthKit available:', available);
   
@@ -157,7 +163,7 @@ const [activityError, setActivityError] = React.useState(false);
         setSteps(Math.round(totalSteps));
         const today = getLocalDateString();
 
-        await fetch(`${API_BASE_URL}/api/steps/${today}`, {
+        const todayResponse = await fetch(`${API_BASE_URL}/api/steps/${today}`, {
   method: 'PUT',
   headers: {
     'Content-Type': 'application/json',
@@ -165,19 +171,18 @@ const [activityError, setActivityError] = React.useState(false);
   body: JSON.stringify({
     steps: Math.round(totalSteps),
     goal,
+    updateGoal: true,
   }),
 });
+        if (!todayResponse.ok) {
+          throw new Error(`Today's step sync failed: ${todayResponse.status}`);
+        }
         console.log('Today steps:', totalSteps);
       } catch (error) {
         console.error('HealthKit error:', error);
+        setSyncError(true);
       }
     };
-    const setupNotifications = async () => {
-      await requestNotificationPermission();
-      await scheduleDailyReminder();
-    };
-    
-    setupNotifications();
 
 const initializeApp = async () => {
   await setupHealthKit();
@@ -196,6 +201,18 @@ const subscription = AppState.addEventListener('change', async nextAppState => {
     return () => {
       subscription.remove();
     };
+  }, [goal, goalLoaded]);
+
+  useEffect(() => {
+    const setupNotifications = async () => {
+      try {
+        await requestNotificationPermission();
+        await scheduleDailyReminder();
+      } catch (error) {
+        console.error('Notification setup error:', error);
+      }
+    };
+    setupNotifications();
   }, []);
   
 return (
@@ -245,6 +262,12 @@ return (
 </View>
 
 <Text style={styles.sectionTitle}>Recent Activities</Text>
+
+{syncError && (
+  <Text style={styles.activityMessage}>
+    Unable to sync steps. Reopen the app to try again.
+  </Text>
+)}
 
 
 {activityLoading ? (
