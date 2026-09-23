@@ -1,6 +1,7 @@
 import React, {useCallback, useState} from 'react';
 import {useFocusEffect} from '@react-navigation/native';
 import {API_BASE_URL} from '../config/api';
+import {useGoal} from '../context/GoalContext';
 import {
   SafeAreaView,
   StyleSheet,
@@ -10,6 +11,7 @@ import {
 } from 'react-native';
 
 function HistoryScreen() {
+  const {goal} = useGoal();
   const [activities, setActivities] = useState<
     {date: string; steps: number; goal: number}[]
   >([]);
@@ -66,7 +68,7 @@ function HistoryScreen() {
     return {
       date: dateString,
       steps: activity?.steps ?? 0,
-      goal: activity?.goal ?? 10000,
+      goal,
     };
   });
 
@@ -87,7 +89,7 @@ const averageSteps =
 
     const maxSteps = Math.max(
       ...chartData.map(activity => activity.steps),
-      10000,
+      goal,
     );
     
     if (isLoading) {
@@ -170,7 +172,7 @@ const averageSteps =
 </View>
 
 {activities.map(activity => {
- const completed = activity.steps >= activity.goal;
+ const completed = activity.steps >= goal;
 
   return (
     <View key={activity.date} style={styles.activityRow}>
@@ -188,7 +190,7 @@ const averageSteps =
 
         <Text style={styles.activitySteps}>
   {activity.steps.toLocaleString()} /{' '}
-  {activity.goal.toLocaleString()} steps
+  {goal.toLocaleString()} steps
 </Text>
       </View>
 

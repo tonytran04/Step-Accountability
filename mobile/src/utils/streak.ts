@@ -3,6 +3,10 @@ export type Activity = {
     steps: number;
     goal: number;
   };
+
+  // A changed goal applies to the displayed history and streak immediately.
+  export const withCurrentGoal = (activities: Activity[], goal: number): Activity[] =>
+    activities.map(activity => ({...activity, goal}));
   
   export const calculateStreak = (
     recentActivity: Activity[],

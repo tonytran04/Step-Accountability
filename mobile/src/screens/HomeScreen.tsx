@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import {isHealthDataAvailable,requestAuthorization,queryQuantitySamples,} from '@kingstinct/react-native-healthkit';
-import {calculateStreak} from '../utils/streak';
+import {calculateStreak, withCurrentGoal} from '../utils/streak';
 import {useGoal} from '../context/GoalContext';
 
 const getLocalDateString = (date = new Date()) => {
@@ -37,7 +37,7 @@ const [activityError, setActivityError] = React.useState(false);
 const [syncError, setSyncError] = React.useState(false);
   const progress = Math.round((steps / goal) * 100); 
   
-  const currentStreak = calculateStreak(recentActivity);
+  const currentStreak = calculateStreak(withCurrentGoal(recentActivity, goal));
 
   useEffect(() => {
     if (!goalLoaded) { return; }
@@ -280,7 +280,7 @@ return (
   <Text style={styles.activityMessage}>No activity yet.</Text>
 ) : (
   recentActivity.map(activity => {
-    const completed = activity.steps >= activity.goal;
+    const completed = activity.steps >= goal;
 
     return (
       <View key={activity.date} style={styles.activityRow}>
