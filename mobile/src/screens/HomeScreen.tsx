@@ -178,36 +178,26 @@ const [activityError, setActivityError] = React.useState(false);
     };
     
     setupNotifications();
-    setupHealthKit();
-    loadRecentActivity();
+
+const initializeApp = async () => {
+  await setupHealthKit();
+  await loadRecentActivity();
+};
+
+initializeApp();
   
-    const subscription = AppState.addEventListener('change', nextAppState => {
-      if (nextAppState === 'active') {
-        setupHealthKit();
-        loadRecentActivity();
-      }
-    });
+const subscription = AppState.addEventListener('change', async nextAppState => {
+  if (nextAppState === 'active') {
+    await setupHealthKit();
+    await loadRecentActivity();
+  }
+});
   
     return () => {
       subscription.remove();
     };
   }, []);
-  /* useEffect(() => {
-    const requestHealthPermissions = async () => {
-      try {
-        await HealthKit.requestAuthorization({
-            toRead: ['HKQuantityTypeIdentifierStepCount'],
-        });
   
-        console.log('HealthKit permission requested');
-      } catch (error) {
-        console.error('HealthKit permission error:', error);
-      }
-    };
-  
-    requestHealthPermissions();
-  }, []);
-*/
 return (
   <SafeAreaView style={styles.container}>
     <ScrollView

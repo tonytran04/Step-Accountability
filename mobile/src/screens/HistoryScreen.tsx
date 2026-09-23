@@ -14,17 +14,30 @@ function HistoryScreen() {
     {date: string; steps: number; goal: number}[]
   >([]);
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useFocusEffect(
     useCallback(() => {
       const loadHistory = async () => {
+        
         try {
-          const response = await fetch(`${API_BASE_URL}/api/steps`);
-          const data = await response.json();
-  
-          setActivities(data);
-        } catch (error) {
-          console.error('History error:', error);
-        }
+            setError(null);
+          
+            const response = await fetch(`${API_BASE_URL}/api/steps`);
+          
+            if (!response.ok) {
+              throw new Error('Failed to load history');
+            }
+          
+            const data = await response.json();
+            setActivities(data);
+          } catch (error) {
+            console.error('History error:', error);
+            setError('Unable to refresh activity.');
+          } finally {
+            setIsLoading(false);
+          }
       };
   
       loadHistory();
@@ -76,6 +89,17 @@ const averageSteps =
       ...chartData.map(activity => activity.steps),
       10000,
     );
+    
+    if (isLoading) {
+        return (
+          <SafeAreaView style={styles.container}>
+            <View style={styles.loadingContainer}>
+              <Text>Loading activity...</Text>
+            </View>
+          </SafeAreaView>
+        );
+      }
+
     return (
         <SafeAreaView style={styles.container}>
           <ScrollView
@@ -103,6 +127,12 @@ const averageSteps =
   </View>
 </View>
 </View>
+
+{error && (
+  <View style={styles.errorContainer}>
+    <Text style={styles.errorText}>{error}</Text>
+  </View>
+)}
 
 <Text style={styles.chartTitle}>Last 7 Days</Text>
 
@@ -277,6 +307,23 @@ container: {
     fontSize: 16,
     marginTop: 6,
     color: '#6B7280',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 16,
+  },
+  
+  errorText: {
+    color: '#991B1B',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 
