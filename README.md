@@ -16,7 +16,11 @@ The app is built for one person on an iPhone. It has no social features or App S
 
 ## Screenshots
 
-Fresh screenshots of **Home**, **History**, and **Settings** will be added here. Capture them from the working iPhone build with a consistent goal and sample activity you are comfortable showing publicly. Suggested filenames are `docs/screenshots/home.png`, `history.png`, and `settings.png`.
+Screenshots from the working iPhone build with a 2,000-step goal:
+
+| Home | History | Settings |
+| --- | --- | --- |
+| <img src="docs/screenshots/home.jpg" alt="Home showing daily progress, streak, and recent activity" width="220" /> | <img src="docs/screenshots/history.jpg" alt="History showing a seven-day chart and completed goals" width="220" /> | <img src="docs/screenshots/settings.jpg" alt="Settings showing the daily step goal" width="220" /> |
 
 ## How it works
 
